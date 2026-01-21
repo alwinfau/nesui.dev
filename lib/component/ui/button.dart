@@ -291,15 +291,15 @@ class _Content extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Widget left = loading
-        ? (loadingLeading ?? RepeatRotateIcon(color: color))
-        : (leading ?? Icon(Icons.save, size: 16, color: color));
+    final Widget? left = loading ? loadingLeading : leading;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(width: 16, height: 16, child: left),
-        const SizedBox(width: 10),
+        if (left != null) ...[
+          SizedBox(width: 16, height: 16, child: left),
+          const SizedBox(width: 10),
+        ],
         child,
       ],
     );
