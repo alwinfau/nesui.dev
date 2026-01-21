@@ -6,25 +6,168 @@ enum IsIntent { primary, secondary, warning, danger, outline, plain }
 
 enum IsSize { xs, sm, md, lg }
 
+@immutable
+class NesuiButtonVariants {
+  final IsIntent intent;
+  final IsSize size;
+  final bool isCircle;
+
+  const NesuiButtonVariants({
+    this.intent = IsIntent.primary,
+    this.size = IsSize.md,
+    this.isCircle = false,
+  });
+
+  NesuiButtonVariants copyWith({
+    IsIntent? intent,
+    IsSize? size,
+    bool? isCircle,
+  }) {
+    return NesuiButtonVariants(
+      intent: intent ?? this.intent,
+      size: size ?? this.size,
+      isCircle: isCircle ?? this.isCircle,
+    );
+  }
+}
+
+class NesuiButtonStyles {
+  // defaultVariants: { intent: "primary", size: "md", isCircle: false }
+  static const IsIntent defaultIntent = IsIntent.primary;
+  static const IsSize defaultSize = IsSize.md;
+  static const bool defaultIsCircle = false;
+
+  static const NesuiButtonVariants defaultVariants = NesuiButtonVariants(
+    intent: defaultIntent,
+    size: defaultSize,
+    isCircle: defaultIsCircle,
+  );
+
+  static ButtonStyle style(
+    BuildContext context, {
+    required NesuiButtonVariants variants,
+    required bool disabled,
+  }) {
+    final t = context.nesui;
+
+    final radius = variants.isCircle ? 9999.0 : t.radius;
+    final padding = _padding(variants.size);
+    final minHeight = _minHeight(variants.size);
+    final textStyle = _textStyle(variants.size);
+
+    Color bg(Set<MaterialState> states) {
+      final isDisabled = disabled || states.contains(MaterialState.disabled);
+
+      if (variants.intent == IsIntent.outline ||
+          variants.intent == IsIntent.plain) {
+        return Colors.transparent;
+      }
+
+      final Color base = switch (variants.intent) {
+        IsIntent.primary => t.brand,
+        IsIntent.secondary => Theme.of(context).colorScheme.surface,
+        IsIntent.warning => const Color(0xFFF59E0B),
+        IsIntent.danger => const Color(0xFFEF4444),
+        _ => t.brand,
+      };
+
+      if (isDisabled) return base.withOpacity(0.5);
+      if (states.contains(MaterialState.pressed)) return base.withOpacity(0.90);
+      if (states.contains(MaterialState.hovered)) return base.withOpacity(0.95);
+      return base;
+    }
+
+    Color fg(Set<MaterialState> states) {
+      final isDisabled = disabled || states.contains(MaterialState.disabled);
+
+      if (variants.intent == IsIntent.outline) {
+        final c = t.brand;
+        return isDisabled ? c.withOpacity(0.6) : c;
+      }
+
+      if (variants.intent == IsIntent.plain) {
+        final c = Theme.of(context).colorScheme.onSurface;
+        return isDisabled ? c.withOpacity(0.6) : c;
+      }
+
+      if (variants.intent == IsIntent.secondary) {
+        final c = Theme.of(context).colorScheme.onSurface;
+        return isDisabled ? c.withOpacity(0.6) : c;
+      }
+
+      final c = Colors.white;
+      return isDisabled ? c.withOpacity(0.75) : c;
+    }
+
+    BorderSide side(Set<MaterialState> states) {
+      final isDisabled = disabled || states.contains(MaterialState.disabled);
+
+      if (variants.intent == IsIntent.outline) {
+        final c = isDisabled ? t.border.withOpacity(0.7) : t.border;
+        return BorderSide(color: c);
+      }
+
+      if (variants.intent == IsIntent.secondary) {
+        final c = isDisabled ? t.border.withOpacity(0.6) : t.border;
+        return BorderSide(color: c);
+      }
+
+      return BorderSide.none;
+    }
+
+    return ButtonStyle(
+      minimumSize: MaterialStateProperty.all(Size(0, minHeight)),
+      padding: MaterialStateProperty.all(padding),
+      textStyle: MaterialStateProperty.all(textStyle),
+      shape: MaterialStateProperty.all(
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius)),
+      ),
+      backgroundColor: MaterialStateProperty.resolveWith(bg),
+      foregroundColor: MaterialStateProperty.resolveWith(fg),
+      side: MaterialStateProperty.resolveWith(side),
+    );
+  }
+
+  static EdgeInsets _padding(IsSize size) => switch (size) {
+    IsSize.xs => const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+    IsSize.sm => const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    IsSize.md => const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    IsSize.lg => const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+  };
+
+  static double _minHeight(IsSize size) => switch (size) {
+    IsSize.xs => 32,
+    IsSize.sm => 36,
+    IsSize.md => 44,
+    IsSize.lg => 50,
+  };
+
+  static TextStyle _textStyle(IsSize size) => switch (size) {
+    IsSize.xs => const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+    IsSize.sm => const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+    IsSize.md => const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+    IsSize.lg => const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+  };
+}
+
 class NesuiButton extends StatefulWidget {
+  // sync
   final VoidCallback? onPressed;
 
-  /// Kalau ingin otomatis loading, pakai ini
+  // async (optional, button bisa self-loading)
   final Future<void> Function()? onPressedAsync;
 
   final Widget child;
-
-  /// Child yang ditampilkan saat loading (mis. Text("Menyimpan..."))
   final Widget? loadingChild;
 
-  /// Layout
+  final Widget? leading;
+  final Widget? loadingLeading;
+
   final bool fullWidth;
 
-  /// Kalau diisi (true/false), button jadi "controlled" dari luar.
-  /// Kalau null, button akan manage loading sendiri ketika onPressedAsync dipakai.
+  /// Controlled loading (kalau null => internal pending saat onPressedAsync)
   final bool? loading;
 
-  /// Variants
   final IsIntent intent;
   final IsSize size;
   final bool isCircle;
@@ -35,11 +178,15 @@ class NesuiButton extends StatefulWidget {
     this.onPressed,
     this.onPressedAsync,
     this.loadingChild,
+    this.leading,
+    this.loadingLeading,
     this.fullWidth = false,
     this.loading,
-    this.intent = IsIntent.primary,
-    this.size = IsSize.md,
-    this.isCircle = false,
+
+    // ✅ default aman (compile-time constant)
+    this.intent = NesuiButtonStyles.defaultIntent,
+    this.size = NesuiButtonStyles.defaultSize,
+    this.isCircle = NesuiButtonStyles.defaultIsCircle,
   });
 
   @override
@@ -54,11 +201,8 @@ class _NesuiButtonState extends State<NesuiButton> {
   Future<void> _handlePress() async {
     if (_isLoading) return;
 
-    // async mode
     if (widget.onPressedAsync != null) {
-      // kalau controlled dari luar (widget.loading != null), jangan setState internal
       final canManageInternal = widget.loading == null;
-
       if (canManageInternal) setState(() => _pending = true);
       try {
         await widget.onPressedAsync!.call();
@@ -69,143 +213,59 @@ class _NesuiButtonState extends State<NesuiButton> {
       return;
     }
 
-    // sync mode
     widget.onPressed?.call();
   }
 
   @override
   Widget build(BuildContext context) {
-    final t = context.nesui;
-
-    final effectiveOnPressed = _isLoading ? null : _handlePress;
-
-    final radius = widget.isCircle ? 9999.0 : t.radius;
-
-    final EdgeInsets padding = switch (widget.size) {
-      IsSize.xs => const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      IsSize.sm => const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      IsSize.md => const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      IsSize.lg => const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-    };
-
-    final double minHeight = switch (widget.size) {
-      IsSize.xs => 32,
-      IsSize.sm => 36,
-      IsSize.md => 44,
-      IsSize.lg => 50,
-    };
-
-    final TextStyle textStyle = switch (widget.size) {
-      IsSize.xs => const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-      IsSize.sm => const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-      IsSize.md => const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-      IsSize.lg => const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-    };
-
-    Color bg(Set<MaterialState> states) {
-      final disabled = states.contains(MaterialState.disabled);
-
-      if (widget.intent == IsIntent.outline ||
-          widget.intent == IsIntent.plain) {
-        return Colors.transparent;
-      }
-
-      Color base = switch (widget.intent) {
-        IsIntent.primary => t.brand,
-        IsIntent.secondary => Theme.of(context).colorScheme.surface,
-        IsIntent.warning => const Color(0xFFF59E0B),
-        IsIntent.danger => const Color(0xFFEF4444),
-        _ => t.brand,
-      };
-
-      if (disabled) return base.withOpacity(0.5);
-      if (states.contains(MaterialState.pressed)) return base.withOpacity(0.90);
-      if (states.contains(MaterialState.hovered)) return base.withOpacity(0.95);
-      return base;
-    }
-
-    Color fg(Set<MaterialState> states) {
-      final disabled = states.contains(MaterialState.disabled);
-
-      if (widget.intent == IsIntent.outline) {
-        final c = t.brand;
-        return disabled ? c.withOpacity(0.6) : c;
-      }
-
-      if (widget.intent == IsIntent.plain) {
-        final c = Theme.of(context).colorScheme.onSurface;
-        return disabled ? c.withOpacity(0.6) : c;
-      }
-
-      if (widget.intent == IsIntent.secondary) {
-        final c = Theme.of(context).colorScheme.onSurface;
-        return disabled ? c.withOpacity(0.6) : c;
-      }
-
-      final c = Colors.white;
-      return disabled ? c.withOpacity(0.75) : c;
-    }
-
-    BorderSide side(Set<MaterialState> states) {
-      if (widget.intent == IsIntent.outline) {
-        final c = states.contains(MaterialState.disabled)
-            ? t.border.withOpacity(0.7)
-            : t.border;
-        return BorderSide(color: c);
-      }
-
-      if (widget.intent == IsIntent.secondary) {
-        final c = states.contains(MaterialState.disabled)
-            ? t.border.withOpacity(0.6)
-            : t.border;
-        return BorderSide(color: c);
-      }
-
-      return BorderSide.none;
-    }
-
-    final ButtonStyle style = ButtonStyle(
-      minimumSize: MaterialStateProperty.all(Size(0, minHeight)),
-      padding: MaterialStateProperty.all(padding),
-      textStyle: MaterialStateProperty.all(textStyle),
-      shape: MaterialStateProperty.all(
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius)),
-      ),
-      backgroundColor: MaterialStateProperty.resolveWith(bg),
-      foregroundColor: MaterialStateProperty.resolveWith(fg),
-      side: MaterialStateProperty.resolveWith(side),
+    final variants = NesuiButtonVariants(
+      intent: widget.intent,
+      size: widget.size,
+      isCircle: widget.isCircle,
     );
 
-    final Color spinnerColor = MaterialStateProperty.resolveWith(
-      fg,
-    ).resolve(_isLoading ? {MaterialState.disabled} : <MaterialState>{})!;
+    final disabled =
+        _isLoading ||
+        (widget.onPressed == null && widget.onPressedAsync == null);
 
-    final Widget shownChild = _isLoading
+    final style = NesuiButtonStyles.style(
+      context,
+      variants: variants,
+      disabled: disabled,
+    );
+
+    final Color fg =
+        style.foregroundColor?.resolve(
+          disabled ? {MaterialState.disabled} : <MaterialState>{},
+        ) ??
+        Theme.of(context).colorScheme.onSurface;
+
+    final shownChild = _isLoading
         ? (widget.loadingChild ?? widget.child)
         : widget.child;
 
     final content = _Content(
       loading: _isLoading,
       child: shownChild,
-      color: spinnerColor,
+      color: fg,
+      leading: widget.leading,
+      loadingLeading: widget.loadingLeading,
     );
+
+    final onPressed = disabled ? null : _handlePress;
 
     final Widget btn = switch (widget.intent) {
       IsIntent.outline || IsIntent.secondary => OutlinedButton(
-        onPressed: effectiveOnPressed,
+        onPressed: onPressed,
         style: style,
         child: content,
       ),
       IsIntent.plain => TextButton(
-        onPressed: effectiveOnPressed,
+        onPressed: onPressed,
         style: style,
         child: content,
       ),
-      _ => FilledButton(
-        onPressed: effectiveOnPressed,
-        style: style,
-        child: content,
-      ),
+      _ => FilledButton(onPressed: onPressed, style: style, child: content),
     };
 
     if (!widget.fullWidth) return btn;
@@ -218,31 +278,27 @@ class _Content extends StatelessWidget {
   final Widget child;
   final Color color;
 
+  final Widget? leading;
+  final Widget? loadingLeading;
+
   const _Content({
     required this.loading,
     required this.child,
     required this.color,
+    this.leading,
+    this.loadingLeading,
   });
 
   @override
   Widget build(BuildContext context) {
-    // if (!loading) return child;
-
-    if (!loading) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.save, size: 16, color: color), // icon saat normal
-          const SizedBox(width: 10),
-          child,
-        ],
-      );
-    }
+    final Widget left = loading
+        ? (loadingLeading ?? RepeatRotateIcon(color: color))
+        : (leading ?? Icon(Icons.save, size: 16, color: color));
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(width: 16, height: 16, child: RepeatRotateIcon(color: color)),
+        SizedBox(width: 16, height: 16, child: left),
         const SizedBox(width: 10),
         child,
       ],
