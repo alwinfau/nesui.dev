@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:nesui/component/nesui.dart';
+import 'package:nesui/nesui.dart';
 
 void main() => runApp(const Demo());
 
