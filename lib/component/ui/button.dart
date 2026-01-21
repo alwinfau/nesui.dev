@@ -184,7 +184,32 @@ class _Content extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(width: 16, height: 16, child: Icon(CupertinoIcons.slowmo)),
+        // SizedBox(width: 16, height: 16, child: Icon(CupertinoIcons.slowmo)),
+        // SizedBox(
+        //   width: 16,
+        //   height: 16,
+        //   child: CircularProgressIndicator(
+        //     strokeWidth: 2,
+        //     valueColor: AlwaysStoppedAnimation<Color>(color),
+        //   ),
+        // ),
+        SizedBox(
+          width: 16,
+          height: 16,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: 1),
+            duration: const Duration(milliseconds: 900),
+            onEnd: () {}, // biar rebuild lewat key (lihat bawah)
+            builder: (context, v, child) {
+              return Transform.rotate(
+                angle: v * 6.283185307179586, // 2*pi
+                child: child,
+              );
+            },
+            child: const Icon(CupertinoIcons.slowmo, size: 16),
+          ),
+        ),
+
         const SizedBox(width: 10),
         child,
       ],
