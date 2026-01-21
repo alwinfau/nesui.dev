@@ -185,16 +185,6 @@ class _Content extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(width: 16, height: 16, child: RepeatRotateIcon()),
-
-        SizedBox(
-          width: 16,
-          height: 16,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(color),
-          ),
-        ),
-
         const SizedBox(width: 10),
         child,
       ],
