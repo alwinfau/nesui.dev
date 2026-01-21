@@ -184,15 +184,16 @@ class _Content extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // SizedBox(width: 16, height: 16, child: Icon(CupertinoIcons.slowmo)),
-        // SizedBox(
-        //   width: 16,
-        //   height: 16,
-        //   child: CircularProgressIndicator(
-        //     strokeWidth: 2,
-        //     valueColor: AlwaysStoppedAnimation<Color>(color),
-        //   ),
-        // ),
+        SizedBox(width: 16, height: 16, child: Icon(CupertinoIcons.slowmo)),
+        SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+          ),
+        ),
+
         SizedBox(
           width: 16,
           height: 16,
