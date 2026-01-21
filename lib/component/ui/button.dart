@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:nesui/component/nesui_theme.dart';
 
-enum NesuiButtonVariant { brand, outline }
+enum Intent { brand, outline }
 
 class NesuiButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final Widget child;
   final bool fullWidth;
   final bool loading;
-  final NesuiButtonVariant variant;
+  final Intent intent;
 
   const NesuiButton({
     super.key,
@@ -16,7 +16,7 @@ class NesuiButton extends StatelessWidget {
     required this.child,
     this.fullWidth = false,
     this.loading = false,
-    this.variant = NesuiButtonVariant.brand,
+    this.intent = Intent.brand,
   });
 
   @override
@@ -26,7 +26,7 @@ class NesuiButton extends StatelessWidget {
     final effectiveOnPressed = loading ? null : onPressed;
 
     final button = switch (variant) {
-      NesuiButtonVariant.brand => FilledButton(
+      Intent.brand => FilledButton(
         onPressed: effectiveOnPressed,
         style: ButtonStyle(
           backgroundColor: MaterialStateProperty.resolveWith((states) {
@@ -46,7 +46,7 @@ class NesuiButton extends StatelessWidget {
         ),
         child: _Content(loading: loading, child: child, onBrand: t.onBrand),
       ),
-      NesuiButtonVariant.outline => OutlinedButton(
+      Intent.outline => OutlinedButton(
         onPressed: effectiveOnPressed,
         style: ButtonStyle(
           foregroundColor: MaterialStateProperty.all(t.brand),
