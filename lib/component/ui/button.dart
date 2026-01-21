@@ -25,7 +25,7 @@ class NesuiButton extends StatelessWidget {
 
     final effectiveOnPressed = loading ? null : onPressed;
 
-    final button = switch (variant) {
+    final button = switch (intent) {
       Intent.brand => FilledButton(
         onPressed: effectiveOnPressed,
         style: ButtonStyle(
