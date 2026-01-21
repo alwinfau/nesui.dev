@@ -159,10 +159,16 @@ class NesuiButton extends StatefulWidget {
   // async (optional, button bisa self-loading)
   final Future<void> Function()? onPressedAsync;
 
+  /// dipanggil kalau async melebihi maxLoadingDuration
+  final VoidCallback? onTimeout;
+
   final Widget child;
   final Widget? loadingChild;
 
+  /// optional icon (normal)
   final Widget? leading;
+
+  /// optional icon (loading), kalau null => default spinner
   final Widget? loadingLeading;
 
   final bool fullWidth;
@@ -174,6 +180,7 @@ class NesuiButton extends StatefulWidget {
   final IsSize size;
   final bool isCircle;
 
+  /// default 200s. set null untuk disable timeout.
   final Duration? maxLoadingDuration;
 
   const NesuiButton({
@@ -181,18 +188,22 @@ class NesuiButton extends StatefulWidget {
     required this.child,
     this.onPressed,
     this.onPressedAsync,
+    this.onTimeout,
     this.loadingChild,
     this.leading,
     this.loadingLeading,
     this.fullWidth = false,
     this.loading,
 
-    // ✅ default aman (compile-time constant)
+    // ✅ defaults
     this.intent = NesuiButtonStyles.defaultIntent,
     this.size = NesuiButtonStyles.defaultSize,
     this.isCircle = NesuiButtonStyles.defaultIsCircle,
     this.maxLoadingDuration = const Duration(seconds: 200),
-  });
+  }) : assert(
+         onPressed == null || onPressedAsync == null,
+         'Use only one: onPressed or onPressedAsync',
+       );
 
   @override
   State<NesuiButton> createState() => _NesuiButtonState();
@@ -218,7 +229,7 @@ class _NesuiButtonState extends State<NesuiButton> {
           await widget.onPressedAsync!.call().timeout(d);
         }
       } on TimeoutException {
-        // waktu habis -> otomatis balik normal (finally akan jalan)
+        widget.onTimeout?.call();
       } finally {
         if (!mounted) return;
         if (canManageInternal) setState(() => _pending = false);
@@ -262,7 +273,8 @@ class _NesuiButtonState extends State<NesuiButton> {
       child: shownChild,
       color: fg,
       leading: widget.leading,
-      loadingLeading: widget.loadingLeading,
+      // kalau null => default spinner
+      loadingLeading: widget.loadingLeading ?? RepeatRotateIcon(color: fg),
     );
 
     final onPressed = disabled ? null : _handlePress;
@@ -304,27 +316,20 @@ class _Content extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // final Widget? left = loading ? loadingLeading : leading;
+    final Widget? left = loading ? loadingLeading : leading;
 
-    final Widget? left = loading
-        ? (loadingLeading == null
-              ? null
-              : IconTheme.merge(
-                  data: IconThemeData(color: color, size: 16),
-                  child: loadingLeading!,
-                ))
-        : (leading == null
-              ? null
-              : IconTheme.merge(
-                  data: IconThemeData(color: color, size: 16),
-                  child: leading!,
-                ));
+    final Widget? themedLeft = left == null
+        ? null
+        : IconTheme.merge(
+            data: IconThemeData(color: color, size: 16),
+            child: left,
+          );
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (left != null) ...[
-          SizedBox(width: 16, height: 16, child: left),
+        if (themedLeft != null) ...[
+          SizedBox(width: 16, height: 16, child: Center(child: themedLeft)),
           const SizedBox(width: 10),
         ],
         child,
