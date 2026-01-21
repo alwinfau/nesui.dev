@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../nesui_theme.dart';
 
@@ -183,11 +184,7 @@ class _Content extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(
-          width: 16,
-          height: 16,
-          child: CircularProgressIndicator(strokeWidth: 2, color: color),
-        ),
+        SizedBox(width: 16, height: 16, child: Icon(CupertinoIcons.slowmo)),
         const SizedBox(width: 10),
         child,
       ],
