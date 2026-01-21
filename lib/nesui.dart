@@ -1,4 +1,4 @@
-library nesui;
+library;
 
-export 'nesui_theme.dart';
-export 'ui/button.dart';
+export 'component/nesui_theme.dart';
+export 'component/ui/button.dart';
