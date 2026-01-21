@@ -226,7 +226,18 @@ class _Content extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!loading) return child;
+    // if (!loading) return child;
+
+    if (!loading) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.save, size: 16, color: color), // icon saat normal
+          const SizedBox(width: 10),
+          child,
+        ],
+      );
+    }
 
     return Row(
       mainAxisSize: MainAxisSize.min,
