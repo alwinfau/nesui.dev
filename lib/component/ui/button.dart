@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:nesui/component/nesui_theme.dart';
+import '../nesui_theme.dart'; // lebih aman daripada package:nesui/...
 
-enum Intent { brand, outline }
+enum NesuiIntent { brand, outline }
 
 class NesuiButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final Widget child;
   final bool fullWidth;
   final bool loading;
-  final Intent intent;
+
+  /// Intent = varian tampilan button (brand / outline)
+  final NesuiIntent intent;
 
   const NesuiButton({
     super.key,
@@ -16,22 +18,22 @@ class NesuiButton extends StatelessWidget {
     required this.child,
     this.fullWidth = false,
     this.loading = false,
-    this.intent = Intent.brand,
+    this.intent = NesuiIntent.brand,
   });
 
   @override
   Widget build(BuildContext context) {
     final t = context.nesui;
-
     final effectiveOnPressed = loading ? null : onPressed;
 
-    final button = switch (intent) {
-      Intent.brand => FilledButton(
+    final Widget button = switch (intent) {
+      NesuiIntent.brand => FilledButton(
         onPressed: effectiveOnPressed,
         style: ButtonStyle(
           backgroundColor: MaterialStateProperty.resolveWith((states) {
-            if (states.contains(MaterialState.disabled))
+            if (states.contains(MaterialState.disabled)) {
               return t.brand.withOpacity(0.5);
+            }
             return t.brand;
           }),
           foregroundColor: MaterialStateProperty.all(t.onBrand),
@@ -46,7 +48,7 @@ class NesuiButton extends StatelessWidget {
         ),
         child: _Content(loading: loading, child: child, onBrand: t.onBrand),
       ),
-      Intent.outline => OutlinedButton(
+      NesuiIntent.outline => OutlinedButton(
         onPressed: effectiveOnPressed,
         style: ButtonStyle(
           foregroundColor: MaterialStateProperty.all(t.brand),
