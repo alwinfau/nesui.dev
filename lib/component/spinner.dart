@@ -7,7 +7,7 @@ class NesuiSpin extends StatefulWidget {
   const NesuiSpin({
     super.key,
     required this.child,
-    this.duration = const Duration(milliseconds: 900),
+    this.duration = const Duration(milliseconds: 100),
   });
 
   @override

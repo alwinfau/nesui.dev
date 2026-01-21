@@ -291,7 +291,21 @@ class _Content extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Widget? left = loading ? loadingLeading : leading;
+    // final Widget? left = loading ? loadingLeading : leading;
+
+    final Widget? left = loading
+        ? (loadingLeading == null
+              ? null
+              : IconTheme.merge(
+                  data: IconThemeData(color: color, size: 16),
+                  child: loadingLeading!,
+                ))
+        : (leading == null
+              ? null
+              : IconTheme.merge(
+                  data: IconThemeData(color: color, size: 16),
+                  child: leading!,
+                ));
 
     return Row(
       mainAxisSize: MainAxisSize.min,
