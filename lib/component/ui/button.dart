@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../nesui_theme.dart';
@@ -172,6 +174,8 @@ class NesuiButton extends StatefulWidget {
   final IsSize size;
   final bool isCircle;
 
+  final Duration? maxLoadingDuration;
+
   const NesuiButton({
     super.key,
     required this.child,
@@ -187,6 +191,7 @@ class NesuiButton extends StatefulWidget {
     this.intent = NesuiButtonStyles.defaultIntent,
     this.size = NesuiButtonStyles.defaultSize,
     this.isCircle = NesuiButtonStyles.defaultIsCircle,
+    this.maxLoadingDuration = const Duration(seconds: 200),
   });
 
   @override
@@ -204,8 +209,16 @@ class _NesuiButtonState extends State<NesuiButton> {
     if (widget.onPressedAsync != null) {
       final canManageInternal = widget.loading == null;
       if (canManageInternal) setState(() => _pending = true);
+
       try {
-        await widget.onPressedAsync!.call();
+        final d = widget.maxLoadingDuration;
+        if (d == null) {
+          await widget.onPressedAsync!.call();
+        } else {
+          await widget.onPressedAsync!.call().timeout(d);
+        }
+      } on TimeoutException {
+        // waktu habis -> otomatis balik normal (finally akan jalan)
       } finally {
         if (!mounted) return;
         if (canManageInternal) setState(() => _pending = false);
