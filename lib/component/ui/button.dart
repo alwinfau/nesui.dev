@@ -184,7 +184,8 @@ class _Content extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(width: 16, height: 16, child: Icon(CupertinoIcons.slowmo)),
+        SizedBox(width: 16, height: 16, child: RepeatRotateIcon()),
+
         SizedBox(
           width: 16,
           height: 16,
@@ -194,26 +195,38 @@ class _Content extends StatelessWidget {
           ),
         ),
 
-        SizedBox(
-          width: 16,
-          height: 16,
-          child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0, end: 1),
-            duration: const Duration(milliseconds: 900),
-            onEnd: () {}, // biar rebuild lewat key (lihat bawah)
-            builder: (context, v, child) {
-              return Transform.rotate(
-                angle: v * 6.283185307179586, // 2*pi
-                child: child,
-              );
-            },
-            child: const Icon(CupertinoIcons.slowmo, size: 16),
-          ),
-        ),
-
         const SizedBox(width: 10),
         child,
       ],
+    );
+  }
+}
+
+class RepeatRotateIcon extends StatefulWidget {
+  const RepeatRotateIcon({super.key});
+
+  @override
+  State<RepeatRotateIcon> createState() => _RepeatRotateIconState();
+}
+
+class _RepeatRotateIconState extends State<RepeatRotateIcon> {
+  int _tick = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 16,
+      height: 16,
+      child: TweenAnimationBuilder<double>(
+        key: ValueKey(_tick), // ganti key => animasi mulai ulang
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 900),
+        onEnd: () => setState(() => _tick++), // repeat
+        builder: (context, v, child) {
+          return Transform.rotate(angle: v * 6.283185307179586, child: child);
+        },
+        child: const Icon(CupertinoIcons.slowmo, size: 16),
+      ),
     );
   }
 }
