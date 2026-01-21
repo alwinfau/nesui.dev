@@ -6,13 +6,23 @@ enum IsIntent { primary, secondary, warning, danger, outline, plain }
 
 enum IsSize { xs, sm, md, lg }
 
-class NesuiButton extends StatelessWidget {
+class NesuiButton extends StatefulWidget {
   final VoidCallback? onPressed;
+
+  /// Kalau ingin otomatis loading, pakai ini
+  final Future<void> Function()? onPressedAsync;
+
   final Widget child;
+
+  /// Child yang ditampilkan saat loading (mis. Text("Menyimpan..."))
+  final Widget? loadingChild;
 
   /// Layout
   final bool fullWidth;
-  final bool loading;
+
+  /// Kalau diisi (true/false), button jadi "controlled" dari luar.
+  /// Kalau null, button akan manage loading sendiri ketika onPressedAsync dipakai.
+  final bool? loading;
 
   /// Variants
   final IsIntent intent;
@@ -21,54 +31,86 @@ class NesuiButton extends StatelessWidget {
 
   const NesuiButton({
     super.key,
-    required this.onPressed,
     required this.child,
+    this.onPressed,
+    this.onPressedAsync,
+    this.loadingChild,
     this.fullWidth = false,
-    this.loading = false,
+    this.loading,
     this.intent = IsIntent.primary,
     this.size = IsSize.md,
     this.isCircle = false,
   });
 
   @override
+  State<NesuiButton> createState() => _NesuiButtonState();
+}
+
+class _NesuiButtonState extends State<NesuiButton> {
+  bool _pending = false;
+
+  bool get _isLoading => widget.loading ?? _pending;
+
+  Future<void> _handlePress() async {
+    if (_isLoading) return;
+
+    // async mode
+    if (widget.onPressedAsync != null) {
+      // kalau controlled dari luar (widget.loading != null), jangan setState internal
+      final canManageInternal = widget.loading == null;
+
+      if (canManageInternal) setState(() => _pending = true);
+      try {
+        await widget.onPressedAsync!.call();
+      } finally {
+        if (!mounted) return;
+        if (canManageInternal) setState(() => _pending = false);
+      }
+      return;
+    }
+
+    // sync mode
+    widget.onPressed?.call();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final t = context.nesui;
-    final effectiveOnPressed = loading ? null : onPressed;
 
-    final radius = isCircle ? 9999.0 : t.radius;
+    final effectiveOnPressed = _isLoading ? null : _handlePress;
 
-    final EdgeInsets padding = switch (size) {
+    final radius = widget.isCircle ? 9999.0 : t.radius;
+
+    final EdgeInsets padding = switch (widget.size) {
       IsSize.xs => const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       IsSize.sm => const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       IsSize.md => const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       IsSize.lg => const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
     };
 
-    final double minHeight = switch (size) {
+    final double minHeight = switch (widget.size) {
       IsSize.xs => 32,
       IsSize.sm => 36,
       IsSize.md => 44,
       IsSize.lg => 50,
     };
 
-    final TextStyle textStyle = switch (size) {
+    final TextStyle textStyle = switch (widget.size) {
       IsSize.xs => const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
       IsSize.sm => const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
       IsSize.md => const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
       IsSize.lg => const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
     };
 
-    // ---- Colors (state-aware) ----
     Color bg(Set<MaterialState> states) {
       final disabled = states.contains(MaterialState.disabled);
 
-      // Outline & plain are not filled
-      if (intent == IsIntent.outline || intent == IsIntent.plain) {
+      if (widget.intent == IsIntent.outline ||
+          widget.intent == IsIntent.plain) {
         return Colors.transparent;
       }
 
-      // Filled variants
-      Color base = switch (intent) {
+      Color base = switch (widget.intent) {
         IsIntent.primary => t.brand,
         IsIntent.secondary => Theme.of(context).colorScheme.surface,
         IsIntent.warning => const Color(0xFFF59E0B),
@@ -85,35 +127,34 @@ class NesuiButton extends StatelessWidget {
     Color fg(Set<MaterialState> states) {
       final disabled = states.contains(MaterialState.disabled);
 
-      if (intent == IsIntent.outline) {
+      if (widget.intent == IsIntent.outline) {
         final c = t.brand;
         return disabled ? c.withOpacity(0.6) : c;
       }
 
-      if (intent == IsIntent.plain) {
+      if (widget.intent == IsIntent.plain) {
         final c = Theme.of(context).colorScheme.onSurface;
         return disabled ? c.withOpacity(0.6) : c;
       }
 
-      if (intent == IsIntent.secondary) {
+      if (widget.intent == IsIntent.secondary) {
         final c = Theme.of(context).colorScheme.onSurface;
         return disabled ? c.withOpacity(0.6) : c;
       }
 
-      // primary / warning / danger
       final c = Colors.white;
       return disabled ? c.withOpacity(0.75) : c;
     }
 
     BorderSide side(Set<MaterialState> states) {
-      if (intent == IsIntent.outline) {
+      if (widget.intent == IsIntent.outline) {
         final c = states.contains(MaterialState.disabled)
             ? t.border.withOpacity(0.7)
             : t.border;
         return BorderSide(color: c);
       }
 
-      if (intent == IsIntent.secondary) {
+      if (widget.intent == IsIntent.secondary) {
         final c = states.contains(MaterialState.disabled)
             ? t.border.withOpacity(0.6)
             : t.border;
@@ -135,15 +176,21 @@ class NesuiButton extends StatelessWidget {
       side: MaterialStateProperty.resolveWith(side),
     );
 
+    final Color spinnerColor = MaterialStateProperty.resolveWith(
+      fg,
+    ).resolve(_isLoading ? {MaterialState.disabled} : <MaterialState>{})!;
+
+    final Widget shownChild = _isLoading
+        ? (widget.loadingChild ?? widget.child)
+        : widget.child;
+
     final content = _Content(
-      loading: loading,
-      child: child,
-      color: MaterialStateProperty.resolveWith(
-        fg,
-      ).resolve(loading ? {MaterialState.disabled} : <MaterialState>{})!,
+      loading: _isLoading,
+      child: shownChild,
+      color: spinnerColor,
     );
 
-    final Widget btn = switch (intent) {
+    final Widget btn = switch (widget.intent) {
       IsIntent.outline || IsIntent.secondary => OutlinedButton(
         onPressed: effectiveOnPressed,
         style: style,
@@ -161,7 +208,7 @@ class NesuiButton extends StatelessWidget {
       ),
     };
 
-    if (!fullWidth) return btn;
+    if (!widget.fullWidth) return btn;
     return SizedBox(width: double.infinity, child: btn);
   }
 }
@@ -184,7 +231,7 @@ class _Content extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(width: 16, height: 16, child: RepeatRotateIcon()),
+        SizedBox(width: 16, height: 16, child: RepeatRotateIcon(color: color)),
         const SizedBox(width: 10),
         child,
       ],
@@ -193,7 +240,8 @@ class _Content extends StatelessWidget {
 }
 
 class RepeatRotateIcon extends StatefulWidget {
-  const RepeatRotateIcon({super.key});
+  final Color color;
+  const RepeatRotateIcon({super.key, required this.color});
 
   @override
   State<RepeatRotateIcon> createState() => _RepeatRotateIconState();
@@ -204,19 +252,15 @@ class _RepeatRotateIconState extends State<RepeatRotateIcon> {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 16,
-      height: 16,
-      child: TweenAnimationBuilder<double>(
-        key: ValueKey(_tick), // ganti key => animasi mulai ulang
-        tween: Tween(begin: 0, end: 1),
-        duration: const Duration(milliseconds: 900),
-        onEnd: () => setState(() => _tick++), // repeat
-        builder: (context, v, child) {
-          return Transform.rotate(angle: v * 6.283185307179586, child: child);
-        },
-        child: const Icon(CupertinoIcons.slowmo, size: 16),
-      ),
+    return TweenAnimationBuilder<double>(
+      key: ValueKey(_tick),
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 900),
+      onEnd: () => setState(() => _tick++),
+      builder: (context, v, child) {
+        return Transform.rotate(angle: v * 6.283185307179586, child: child);
+      },
+      child: Icon(CupertinoIcons.slowmo, size: 16, color: widget.color),
     );
   }
 }
